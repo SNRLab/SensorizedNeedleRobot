@@ -1,4 +1,4 @@
-<robot name="arm">
+<robot name="adaptive_guide">
     <link name="world" />
     <joint name="base_joint" type="fixed">
         <origin xyz="0 0 0.046482" rpy="0 0 0 " />
