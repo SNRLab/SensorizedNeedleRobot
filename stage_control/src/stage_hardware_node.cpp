@@ -358,14 +358,14 @@ public:
         RCLCPP_INFO(this->get_logger(), "Initializing...");
         if (!intialize())
         {
-            RCLCPP_INFO(this->get_logger(), "Could not initialize, shutting down...");
+            RCLCPP_ERROR(this->get_logger(), "Could not initialize, shutting down...");
             rclcpp::shutdown();
         }
 
         // Start service
         RCLCPP_INFO(this->get_logger(), "Starting command service...");
-        service = this->create_service<ControllerCommand>("controller/command", 
-            std::bind(&Stage::send_command, this, std::placeholders::_1, std::placeholders::_2));
+        service = this->create_service<ControllerCommand>("controller/command",
+                                                          std::bind(&Stage::send_command, this, std::placeholders::_1, std::placeholders::_2));
 
         // Start stage pose publisher
         x_publisher = this->create_publisher<std_msgs::msg::Float64>("stage/joint_states/x", 10);
@@ -405,13 +405,13 @@ private:
     char in[64];
     bool homed = false;
 
-    void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg) 
+    void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
         std::string s = "X" + std::to_string(mm_to_pulses(msg->data));
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
     }
 
@@ -421,7 +421,7 @@ private:
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
     }
 
@@ -434,7 +434,7 @@ private:
         strcpy(out, "PX"); //move the motor
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-           RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
         x.data = pulses_to_mm(atof(in));
 
@@ -442,7 +442,7 @@ private:
         strcpy(out, "PY"); //move the motor
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-           RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
         z.data = pulses_to_mm(atof(in));
 
@@ -452,7 +452,7 @@ private:
     }
 
     void send_command(const std::shared_ptr<ControllerCommand::Request> request,
-             std::shared_ptr<ControllerCommand::Response> response)
+                      std::shared_ptr<ControllerCommand::Response> response)
     {
         RCLCPP_INFO(this->get_logger(), "Received command: %s", request->command.c_str());
 
@@ -469,7 +469,7 @@ private:
         strcpy(out, request->command.c_str()); //move the motor
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-           RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
         RCLCPP_INFO(this->get_logger(), "Received response: %s", in);
         response->response = std::string(in);
@@ -487,19 +487,19 @@ private:
 
         if (!fnPerformaxComGetNumDevices(&num))
         {
-            RCLCPP_INFO(this->get_logger(), "error in fnPerformaxComGetNumDevices\n");
+            RCLCPP_ERROR(this->get_logger(), "error in fnPerformaxComGetNumDevices\n");
             return false;
         }
         if (num < 1)
         {
-            RCLCPP_INFO(this->get_logger(), "No motor found\n");
+            RCLCPP_ERROR(this->get_logger(), "No motor found\n");
             return false;
         }
 
         if (!fnPerformaxComGetProductString(0, lpDeviceString, PERFORMAX_RETURN_SERIAL_NUMBER) ||
             !fnPerformaxComGetProductString(0, lpDeviceString, PERFORMAX_RETURN_DESCRIPTION))
         {
-            RCLCPP_INFO(this->get_logger(), "error acquiring product string\n");
+            RCLCPP_ERROR(this->get_logger(), "error acquiring product string\n");
             return false;
         }
 
@@ -509,18 +509,18 @@ private:
 
         if (!fnPerformaxComOpen(0, &Handle))
         {
-            RCLCPP_INFO(this->get_logger(), "Error opening device\n");
+            RCLCPP_ERROR(this->get_logger(), "Error opening device\n");
             return false;
         }
 
         if (!fnPerformaxComSetTimeouts(5000, 5000))
         {
-            RCLCPP_INFO(this->get_logger(), "Error setting timeouts\n");
+            RCLCPP_ERROR(this->get_logger(), "Error setting timeouts\n");
             return false;
         }
         // if (!fnPerformaxComFlush(Handle))
         // {
-        //     RCLCPP_INFO(this->get_logger(), "Error flushing the coms\n");
+        //     RCLCPP_ERROR(this->get_logger(), "Error flushing the coms\n");
         //     return false;
         // }
 
@@ -529,48 +529,48 @@ private:
         strcpy(out, "LSPD=100"); //set low speed
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
         strcpy(out, "HSPD=10000"); //set high speed
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "POL=16"); //set polarity on the limit switch to be positive
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "ACC=300"); //set acceleration
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "EO1=1"); //enable x
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "EO2=1"); //enable y
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "ID"); //read ID
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
@@ -579,7 +579,7 @@ private:
         strcpy(out, "DN"); //read Device Number
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
@@ -595,7 +595,7 @@ private:
         strcpy(out, "HL+"); //read Device Number
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
@@ -608,21 +608,21 @@ private:
         strcpy(out, "ABORT"); //read Device Number
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "PX=0"); //zero X position
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
         strcpy(out, "PY=0"); //zero Y position
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
 
@@ -637,17 +637,16 @@ private:
         strcpy(out, "MSTX"); //read Device Number
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
         int x_status = atoi(in);
         bool x_moving = x_status == 1 || x_status == 2 || x_status == 4;
 
-
         strcpy(out, "MSTY"); //read Device Number
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
-            RCLCPP_INFO(this->get_logger(), "Could not send\n");
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
             return false;
         }
         int z_status = atoi(in);

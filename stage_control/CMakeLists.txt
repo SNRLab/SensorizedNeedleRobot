@@ -35,6 +35,9 @@ add_executable(stage_hardware_node src/stage_hardware_node.cpp)
 ament_target_dependencies(stage_hardware_node rclcpp stage_control_interfaces)
 target_link_libraries(stage_hardware_node usb-1.0)
 
+add_executable(stage_emulated_node src/stage_emulated_node.cpp)
+ament_target_dependencies(stage_emulated_node rclcpp)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -50,6 +53,7 @@ endif()
 install(TARGETS
     stage_control_node
     stage_hardware_node
+    stage_emulated_node
     DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
