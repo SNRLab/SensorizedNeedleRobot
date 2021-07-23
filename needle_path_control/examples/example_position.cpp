@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
   }
   std::cout << "Created action server" << std::endl;
 
-  std::vector<std::string> joint_names = {"slider_to_cart"};
+  std::vector<std::string> joint_names = {"joint1","joint2","joint3","joint4"};
 
   std::vector<trajectory_msgs::msg::JointTrajectoryPoint> points;
   trajectory_msgs::msg::JointTrajectoryPoint point;
@@ -113,21 +113,25 @@ int main(int argc, char * argv[])
   point.positions.resize(joint_names.size());
 
   point.positions[0] = 0.0;
-
+  point.positions[1] = 0.0;
+  
   trajectory_msgs::msg::JointTrajectoryPoint point2;
   point2.time_from_start = rclcpp::Duration::from_seconds(1.0);
   point2.positions.resize(joint_names.size());
-  point2.positions[0] = -1.0;
+  point2.positions[0] = 0.050;
+  point2.positions[1] = 0.50;
 
   trajectory_msgs::msg::JointTrajectoryPoint point3;
   point3.time_from_start = rclcpp::Duration::from_seconds(2.0);
   point3.positions.resize(joint_names.size());
-  point3.positions[0] = 1.0;
+  point3.positions[0] = 0.010;
+  point3.positions[1] = 0.10;
 
   trajectory_msgs::msg::JointTrajectoryPoint point4;
   point4.time_from_start = rclcpp::Duration::from_seconds(3.0);
   point4.positions.resize(joint_names.size());
   point4.positions[0] = 0.0;
+  point4.positions[1] = 0.0;
 
   points.push_back(point);
   points.push_back(point2);
@@ -140,7 +144,7 @@ int main(int argc, char * argv[])
   opt.feedback_callback = std::bind(common_feedback, std::placeholders::_1, std::placeholders::_2);
 
   control_msgs::action::FollowJointTrajectory_Goal goal_msg;
-  goal_msg.goal_time_tolerance = rclcpp::Duration::from_seconds(1.0);
+  goal_msg.goal_time_tolerance = rclcpp::Duration::from_seconds(5.0);
   goal_msg.trajectory.joint_names = joint_names;
   goal_msg.trajectory.points = points;
 
