@@ -33,12 +33,10 @@ def generate_launch_description():
                     get_package_share_directory('gazebo_ros'), 'launch'), '/gazebo.launch.py']),
              )
 
-    adaptive_guide_description_path = os.path.join(
-        get_package_share_directory('needle_path_control'))
-
-    xacro_file = os.path.join(adaptive_guide_description_path,
-                              'urdf',
-                              'adaptive_guide.xacro.urdf')
+    urdf_file_name = 'models/adaptive_guide/adaptive_guide.urdf'
+    xacro_file = os.path.join(
+                    get_package_share_directory('adaptive_guide_description'),
+                    urdf_file_name)
 
     doc = xacro.parse(open(xacro_file))
     xacro.process_doc(doc)
@@ -53,7 +51,7 @@ def generate_launch_description():
 
     spawn_entity = Node(package='gazebo_ros', executable='spawn_entity.py',
                         arguments=['-topic', 'robot_description',
-                                   '-entity', 'arm'],
+                                   '-entity', 'adaptive_guide'],
                         output='screen')
 
     load_joint_state_controller = ExecuteProcess(

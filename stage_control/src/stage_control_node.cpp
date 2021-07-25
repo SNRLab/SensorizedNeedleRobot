@@ -46,7 +46,9 @@ namespace stage_control
 
             // Subscribe to virtual topics
 
+
             // Publish to virtual joint command topics
+
 
             // Start stage position publisher
             RCLCPP_INFO(this->get_logger(), "Starting stage pose publisher...");
@@ -196,6 +198,18 @@ namespace stage_control
 
             this->hardware_x_publisher->publish(x_command);
             this->hardware_z_publisher->publish(z_command);
+        }
+
+        void MoveVirtualStage(double x, double z)
+        {
+            // Initialize JointTrajectoryPoint message
+
+            // Set x and z position
+
+            // Create FollowJointTrajectory message
+
+            // Send to JointTrajectoryController server
+            
         }
 
         double calculate_error(double x, double z)
