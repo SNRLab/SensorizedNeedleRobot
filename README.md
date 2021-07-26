@@ -4,7 +4,8 @@ Shared repository for the sensorized needle robot collaboration between BWH and 
 ## Installation
 Clone repository into the src folder of a colcon workspace, and then run rosdep to install dependencies:
 ```bash
-rosdep install --from-paths src
+rosdep update
+rosdep install --from-paths src --ignore-src -y
 ```
 Then build:
 ```bash

@@ -4,7 +4,7 @@
   <version>0.0.3</version>
   <description>needle_path_control</description>
 
-  <maintainer email="ahcorde@osrfoundation.org">Alejandro Hernandez</maintainer>
+  <maintainer email="hannahpwixom@gmail.com">Hannah Wixom</maintainer>
 
   <license>Apache License 2.0</license>
 
@@ -12,7 +12,7 @@
   <url type="bugtracker">https://github.com/ros-simulation/gazebo_ros2_control/issues</url>
   <url type="repository">https://github.com/ros-simulation/gazebo_ros2_control</url>
 
-  <author>Alejandro Hernández</author>
+  <author>Hannah Wixom</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

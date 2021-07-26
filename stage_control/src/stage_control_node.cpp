@@ -10,6 +10,7 @@
 #include "std_msgs/msg/float64.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 
+#include "control_msgs/action/follow_joint_trajectory.hpp"
 //#include "stage_control/visibility_control.h"
 
 using namespace std::chrono_literals;
@@ -202,13 +203,44 @@ namespace stage_control
 
         void MoveVirtualStage(double x, double z)
         {
-            // Initialize JointTrajectoryPoint message
+        // Initialize JointTrajectoryPoint message
+            //std::vector<std::string> joint_names = {"joint1","joint2"};
+            //std::vector<trajectory_msgs::msg::JointTrajectoryPoint> points;
 
             // Set x and z position
+            //auto x_position = Float64();
+            //auto z_position = Float64();
+
+            //x_position.data = x;
+            //z_position.data = z;
+            
+            //set x
+            //trajectory_msgs::msg::JointTrajectoryPoint point;
+            //point.time_from_start = rclcpp::Duration::from_seconds(0.0);  // start asap
+            //point.positions.resize(joint_names.size());
+
+            //point.positions[0] = 0.0;
+            //point.positions[1] = 0.0;
+
+            //set z
+            //trajectory_msgs::msg::JointTrajectoryPoint point2;
+            //point2.time_from_start = rclcpp::Duration::from_seconds(1.0);  // start asap
+            //point2.positions.resize(joint_names.size());
+
+            //point2.positions[0] = x;
+            //point2.positions[1] = z;
+
+            //points.push_back(point);
+            //points.push_back(point2);
 
             // Create FollowJointTrajectory message
+            //control_msgs::action::FollowJointTrajectory_Goal goal_msg;
+            //goal_msg.goal_time_tolerance = rclcpp::Duration::from_seconds(5.0);
+            //goal_msg.trajectory.joint_names = joint_names;
+            //goal_msg.trajectory.points = points;
 
             // Send to JointTrajectoryController server
+            //auto goal_handle_future = action_client->async_send_goal(goal_msg, opt);
             
         }
 

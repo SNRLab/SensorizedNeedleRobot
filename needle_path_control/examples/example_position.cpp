@@ -21,6 +21,16 @@
 
 #include "control_msgs/action/follow_joint_trajectory.hpp"
 
+//path variables:
+//x (joint1) min and max are: 0.0, 0.1
+//z (joint2) min and max are: 0.0, 0.1
+//y (joint3) min and max are: -0.16, 0.0
+//rotation (joint 4) min and max are: -3.0, 3.0
+double pointsx [4] = {0, 0.050, 0.025, 0.025};
+double pointsz [4] = {0, 0.050, 0.025, 0.02};
+double pointsy [4] = {0, -0.050, -0.020, -0.030};
+double pointsr [4] = {0, -2, 2, 0};
+
 std::shared_ptr<rclcpp::Node> node;
 bool common_goal_accepted = false;
 rclcpp_action::ResultCode common_resultcode = rclcpp_action::ResultCode::UNKNOWN;
@@ -105,29 +115,44 @@ int main(int argc, char * argv[])
   }
   std::cout << "Created action server" << std::endl;
 
-  std::vector<std::string> joint_names = {"slider_to_cart"};
+  std::vector<std::string> joint_names = {"joint1","joint2","joint3","joint4"};
 
   std::vector<trajectory_msgs::msg::JointTrajectoryPoint> points;
   trajectory_msgs::msg::JointTrajectoryPoint point;
   point.time_from_start = rclcpp::Duration::from_seconds(0.0);  // start asap
   point.positions.resize(joint_names.size());
 
-  point.positions[0] = 0.0;
+  point.positions[0] = pointsx[0];
+  point.positions[1] = pointsz[0];
+  point.positions[2] = pointsy[0];
+  point.positions[3] = pointsr[0];
 
   trajectory_msgs::msg::JointTrajectoryPoint point2;
   point2.time_from_start = rclcpp::Duration::from_seconds(1.0);
   point2.positions.resize(joint_names.size());
-  point2.positions[0] = -1.0;
+  
+  point2.positions[0] = pointsx[1];
+  point2.positions[1] = pointsz[1];
+  point2.positions[2] = pointsy[1];
+  point2.positions[3] = pointsr[1];
 
   trajectory_msgs::msg::JointTrajectoryPoint point3;
   point3.time_from_start = rclcpp::Duration::from_seconds(2.0);
   point3.positions.resize(joint_names.size());
-  point3.positions[0] = 1.0;
+  
+  point3.positions[0] = pointsx[2];
+  point3.positions[1] = pointsz[2];
+  point3.positions[2] = pointsy[2];
+  point3.positions[3] = pointsr[2];
 
   trajectory_msgs::msg::JointTrajectoryPoint point4;
   point4.time_from_start = rclcpp::Duration::from_seconds(3.0);
   point4.positions.resize(joint_names.size());
-  point4.positions[0] = 0.0;
+  
+  point4.positions[0] = pointsx[3];
+  point4.positions[1] = pointsz[3];
+  point4.positions[2] = pointsy[3];
+  point4.positions[3] = pointsr[3];
 
   points.push_back(point);
   points.push_back(point2);
@@ -140,7 +165,7 @@ int main(int argc, char * argv[])
   opt.feedback_callback = std::bind(common_feedback, std::placeholders::_1, std::placeholders::_2);
 
   control_msgs::action::FollowJointTrajectory_Goal goal_msg;
-  goal_msg.goal_time_tolerance = rclcpp::Duration::from_seconds(1.0);
+  goal_msg.goal_time_tolerance = rclcpp::Duration::from_seconds(5.0);
   goal_msg.trajectory.joint_names = joint_names;
   goal_msg.trajectory.points = points;
 
