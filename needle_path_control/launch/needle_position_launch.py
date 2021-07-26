@@ -33,7 +33,7 @@ def generate_launch_description():
                     get_package_share_directory('gazebo_ros'), 'launch'), '/gazebo.launch.py']),
              )
 
-    urdf_file_name = 'models/adaptive_guide/adaptive_guide.urdf'
+    urdf_file_name = 'models/adaptive_guide/adaptive_guide.urdf.xacro'
     xacro_file = os.path.join(
                     get_package_share_directory('adaptive_guide_description'),
                     urdf_file_name)
