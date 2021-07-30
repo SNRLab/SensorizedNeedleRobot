@@ -22,6 +22,9 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(stage_control_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
+find_package(std_msgs)
 
 add_executable(stage_control_node src/stage_control_node.cpp)
 ament_target_dependencies(stage_control_node
@@ -29,7 +32,9 @@ ament_target_dependencies(stage_control_node
   "rclcpp_action"
   "rclcpp_components"
   "geometry_msgs"
-  "stage_control_interfaces")
+  "stage_control_interfaces"
+  "control_msgs"
+  )
 
 add_executable(stage_hardware_node src/stage_hardware_node.cpp)
 ament_target_dependencies(stage_hardware_node rclcpp stage_control_interfaces)
@@ -38,6 +43,8 @@ target_link_libraries(stage_hardware_node usb-1.0)
 add_executable(stage_emulated_node src/stage_emulated_node.cpp)
 ament_target_dependencies(stage_emulated_node rclcpp)
 
+add_executable(stage_virtual_node src/stage_virtual_node.cpp)
+ament_target_dependencies(stage_virtual_node rclcpp sensor_msgs std_msgs control_msgs rclcpp_action)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -54,6 +61,7 @@ install(TARGETS
     stage_control_node
     stage_hardware_node
     stage_emulated_node
+    stage_virtual_node
     DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
