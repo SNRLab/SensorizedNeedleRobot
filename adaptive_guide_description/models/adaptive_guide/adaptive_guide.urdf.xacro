@@ -76,6 +76,9 @@
         </inertial>
 
     </link>
+    <gazebo reference="link1">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
     <link name="link2">
         <visual>
             <geometry>
@@ -89,6 +92,9 @@
         </inertial>
 
     </link>
+    <gazebo reference="link2">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
     <link name="link3">
         <visual>
             <geometry>
@@ -101,6 +107,9 @@
         </inertial>
 
     </link>
+    <gazebo reference="link3">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
     <link name="link4">
         <visual>
             <geometry>
@@ -114,6 +123,9 @@
         </inertial>
 
     </link>
+    <gazebo reference="link4">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
     <link name="EE" />
 
     <joint name="joint1" type="prismatic">

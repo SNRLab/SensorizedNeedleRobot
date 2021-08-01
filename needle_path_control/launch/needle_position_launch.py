@@ -60,9 +60,27 @@ def generate_launch_description():
         output='screen'
     )
 
-    load_joint_trajectory_controller = ExecuteProcess(
+    load_joint1_trajectory_controller = ExecuteProcess(
        cmd=['ros2', 'control', 'load_controller', '--set-state', 'start',
-            'joint_trajectory_controller'],
+            'joint1_trajectory_controller'],
+       output='screen'
+    )
+
+    load_joint2_trajectory_controller = ExecuteProcess(
+       cmd=['ros2', 'control', 'load_controller', '--set-state', 'start',
+            'joint2_trajectory_controller'],
+       output='screen'
+    )
+
+    load_joint3_trajectory_controller = ExecuteProcess(
+       cmd=['ros2', 'control', 'load_controller', '--set-state', 'start',
+            'joint3_trajectory_controller'],
+       output='screen'
+    )
+
+    load_joint4_trajectory_controller = ExecuteProcess(
+       cmd=['ros2', 'control', 'load_controller', '--set-state', 'start',
+            'joint4_trajectory_controller'],
        output='screen'
     )
 
@@ -76,7 +94,25 @@ def generate_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_controller,
-                on_exit=[load_joint_trajectory_controller],
+                on_exit=[load_joint1_trajectory_controller],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_joint1_trajectory_controller,
+                on_exit=[load_joint2_trajectory_controller],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_joint2_trajectory_controller,
+                on_exit=[load_joint3_trajectory_controller],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_joint3_trajectory_controller,
+                on_exit=[load_joint4_trajectory_controller],
             )
         ),
         gazebo,

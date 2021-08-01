@@ -37,7 +37,7 @@ def generate_launch_description():
         Node(
             package="stage_control",
             executable="stage_virtual_node",
-            name="stage_hardware_node",
+            name="stage_virtual_node",
             output="screen",
             condition=conditions.IfCondition(
                PythonExpression([LaunchConfiguration('sim_level'), " == 1 or ", 
