@@ -39,12 +39,12 @@ public:
 
         // Start virtual stage position command subscribers
         x_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "virtual_stage/x_position_controller/x",
+            "virtual_stage/x_position_controller/command",
             10,
             std::bind(&VirtualStageNode::x_command_callback, this, std::placeholders::_1));
 
         z_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "virtual_stage/z_position_controller/z",
+            "virtual_stage/z_position_controller/command",
             10,
             std::bind(&VirtualStageNode::z_command_callback, this, std::placeholders::_1));
 

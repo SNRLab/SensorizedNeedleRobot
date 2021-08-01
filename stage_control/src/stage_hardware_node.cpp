@@ -375,12 +375,12 @@ public:
 
         // Start stage position command subscribers
         x_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "stage/x_position_contoller/command",
+            "stage/x_position_controller/command",
             10,
             std::bind(&Stage::x_command_callback, this, std::placeholders::_1));
 
         z_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "stage/z_position_contoller/command",
+            "stage/z_position_controller/command",
             10,
             std::bind(&Stage::z_command_callback, this, std::placeholders::_1));
 

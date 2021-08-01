@@ -16,19 +16,19 @@ public:
         target_z = current_z;
 
         // Start stage pose publisher
-        x_publisher = this->create_publisher<std_msgs::msg::Float64>("stage/joint_states/x", 10);
-        z_publisher = this->create_publisher<std_msgs::msg::Float64>("stage/joint_states/z", 10);
+        x_publisher = this->create_publisher<std_msgs::msg::Float64>("emulated_stage/joint_states/x", 10);
+        z_publisher = this->create_publisher<std_msgs::msg::Float64>("emulated_stage/joint_states/z", 10);
         timer = this->create_wall_timer(
             50ms, std::bind(&EmulatedStage::publish_state, this));
 
         // Start stage position command subscribers
         x_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "stage/x_position_contoller/command",
+            "emulated_stage/x_position_controller/command",
             10,
             std::bind(&EmulatedStage::x_command_callback, this, std::placeholders::_1));
 
         z_subscriber = this->create_subscription<std_msgs::msg::Float64>(
-            "stage/z_position_contoller/command",
+            "emulated_stage/z_position_controller/command",
             10,
             std::bind(&EmulatedStage::z_command_callback, this, std::placeholders::_1));
 

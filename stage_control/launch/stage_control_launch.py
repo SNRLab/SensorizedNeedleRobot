@@ -2,7 +2,7 @@ from launch import LaunchDescription, conditions
 from launch.substitutions.launch_configuration import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import PythonExpression
+from launch.substitutions import PythonExpression, LaunchConfiguration
 
 # Launch stage control action servers and hardware controls
 
@@ -20,7 +20,10 @@ def generate_launch_description():
             package="stage_control",
             executable="stage_control_node",
             name="stage_control_node",
-            output="screen"
+            output="screen",
+            parameters=[
+                {"sim_level": LaunchConfiguration('sim_level')}
+            ]
         ),
         Node(
             package="stage_control",
@@ -29,6 +32,15 @@ def generate_launch_description():
             output="screen",
             condition=conditions.IfCondition(
                PythonExpression([LaunchConfiguration('sim_level'), " == 2 or ", 
+               LaunchConfiguration('sim_level'), " == 3"]))
+        ),
+        Node(
+            package="stage_control",
+            executable="stage_virtual_node",
+            name="stage_hardware_node",
+            output="screen",
+            condition=conditions.IfCondition(
+               PythonExpression([LaunchConfiguration('sim_level'), " == 1 or ", 
                LaunchConfiguration('sim_level'), " == 3"]))
         ),
         Node(

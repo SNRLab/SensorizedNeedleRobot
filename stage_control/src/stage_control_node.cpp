@@ -30,26 +30,54 @@ namespace stage_control
         {
             using namespace std::placeholders;
 
-            // Subscribe to hardware topics
-            hardware_x_subscriber = this->create_subscription<Float64>(
-                "stage/joint_states/x",
+            // Get sim level
+            this->declare_parameter<int>("sim_level", 0);
+            this->get_parameter("sim_level", sim_level);
+            RCLCPP_INFO(this->get_logger(), "Starting stage control node with simulation level %i.", sim_level);
+
+            // Handle sim level based publishers/subscribers
+            std::string joint_topic_x, joint_topic_z;
+            if (sim_level == 0)
+            {
+                joint_topic_x = "emulated_stage/joint_states/x";
+                joint_topic_z = "emulated_stage/joint_states/z";
+                emulated_x_publisher = this->create_publisher<Float64>("emulated_stage/x_position_controller/command", 10);
+                emulated_z_publisher = this->create_publisher<Float64>("emulated_stage/z_position_controller/command", 10);
+            }
+            else if (sim_level == 1)
+            {
+                joint_topic_x = "virtual_stage/joint_states/x";
+                joint_topic_z = "virtual_stage/joint_states/z";
+                virtual_x_publisher = this->create_publisher<Float64>("virtual_stage/x_position_controller/command", 10);
+                virtual_z_publisher = this->create_publisher<Float64>("virtual_stage/z_position_controller/command", 10);
+            }
+            else if (sim_level == 2)
+            {
+                joint_topic_x = "stage/joint_states/x";
+                joint_topic_z = "stage/joint_states/z";
+                hardware_x_publisher = this->create_publisher<Float64>("stage/x_position_controller/command", 10);
+                hardware_z_publisher = this->create_publisher<Float64>("stage/z_position_controller/command", 10);
+            }
+            else
+            {
+                joint_topic_x = "stage/joint_states/x";
+                joint_topic_z = "stage/joint_states/z";
+                virtual_x_publisher = this->create_publisher<Float64>("virtual_stage/x_position_controller/command", 10);
+                virtual_z_publisher = this->create_publisher<Float64>("virtual_stage/z_position_controller/command", 10);
+                hardware_x_publisher = this->create_publisher<Float64>("stage/x_position_controller/command", 10);
+                hardware_z_publisher = this->create_publisher<Float64>("stage/z_position_controller/command", 10);
+            }
+
+            // Subscribe to joint state topics
+            x_subscriber = this->create_subscription<Float64>(
+                joint_topic_x,
                 10,
                 std::bind(&StageControlNode::x_state_callback, this, std::placeholders::_1));
 
-            hardware_z_subscriber = this->create_subscription<Float64>(
-                "stage/joint_states/z",
+            z_subscriber = this->create_subscription<Float64>(
+                joint_topic_z,
                 10,
                 std::bind(&StageControlNode::z_state_callback, this, std::placeholders::_1));
-
-            // Publish to hardware joint command topics
-            hardware_x_publisher = this->create_publisher<Float64>("stage/x_position_contoller/command", 10);
-            hardware_z_publisher = this->create_publisher<Float64>("stage/z_position_contoller/command", 10);
-
-            // Subscribe to virtual topics
-
-
-            // Publish to virtual joint command topics
-
 
             // Start stage position publisher
             RCLCPP_INFO(this->get_logger(), "Starting stage pose publisher...");
@@ -70,15 +98,20 @@ namespace stage_control
         }
 
     private:
-        rclcpp::Subscription<Float64>::SharedPtr hardware_x_subscriber;
-        rclcpp::Subscription<Float64>::SharedPtr hardware_z_subscriber;
+        rclcpp::Subscription<Float64>::SharedPtr x_subscriber;
+        rclcpp::Subscription<Float64>::SharedPtr z_subscriber;
         rclcpp::Publisher<Float64>::SharedPtr hardware_x_publisher;
         rclcpp::Publisher<Float64>::SharedPtr hardware_z_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr virtual_x_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr virtual_z_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr emulated_x_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr emulated_z_publisher;
         rclcpp_action::Server<MoveStage>::SharedPtr action_server_;
         rclcpp::TimerBase::SharedPtr pose_timer_;
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
         double current_x;
         double current_z;
+        int sim_level;
 
         void x_state_callback(const Float64::SharedPtr msg) 
         {
@@ -143,7 +176,23 @@ namespace stage_control
             auto result = std::make_shared<MoveStage::Result>();
 
             // Send command to motors
-            MoveStageHardware(goal->x, goal->z);
+            if (sim_level == 0)
+            {
+                MoveEmulatedStage(goal->x, goal->z);
+            }
+            else if (sim_level == 1)
+            {
+                MoveVirtualStage(goal->x, goal->z);
+            }
+            else if (sim_level == 2)
+            {
+                MoveVirtualStage(goal->x, goal->z);
+                MoveStageHardware(goal->x, goal->z);
+            }
+            else
+            {
+                MoveStageHardware(goal->x, goal->z);
+            }
 
             // Get current time
             double start = this->now().seconds();
@@ -199,6 +248,36 @@ namespace stage_control
 
             this->hardware_x_publisher->publish(x_command);
             this->hardware_z_publisher->publish(z_command);
+        }
+
+        void MoveVirtualStage(double x, double z)
+        {
+            RCLCPP_INFO(this->get_logger(), "Moving virtual stage from (%f, %f) to (%f, %f)", 
+                this->current_x, this->current_z, x, z);
+
+            auto x_command = Float64();
+            auto z_command = Float64();
+
+            x_command.data = x;
+            z_command.data = z;
+
+            this->virtual_x_publisher->publish(x_command);
+            this->virtual_z_publisher->publish(z_command);
+        }
+
+        void MoveEmulatedStage(double x, double z)
+        {
+            RCLCPP_INFO(this->get_logger(), "Moving emulated stage from (%f, %f) to (%f, %f)", 
+                this->current_x, this->current_z, x, z);
+
+            auto x_command = Float64();
+            auto z_command = Float64();
+
+            x_command.data = x;
+            z_command.data = z;
+
+            this->emulated_x_publisher->publish(x_command);
+            this->emulated_z_publisher->publish(z_command);
         }
 
         double calculate_error(double x, double z)
