@@ -417,7 +417,7 @@ private:
 
     void z_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        std::string s = "Y" + std::to_string(mm_to_pulses(msg->data));
+        std::string s = "Y" + std::to_string(mm_to_pulses(-1*msg->data));
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
@@ -444,7 +444,7 @@ private:
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
-        z.data = pulses_to_mm(atof(in));
+        z.data = -1*pulses_to_mm(atof(in));
 
         // Publish
         x_publisher->publish(x);
@@ -464,6 +464,7 @@ private:
         else if (request->command.compare("flush") == 0)
         {
             fnPerformaxComFlush(Handle);
+            return;
         }
 
         strcpy(out, request->command.c_str()); //move the motor
@@ -592,7 +593,14 @@ private:
     {
         RCLCPP_INFO(this->get_logger(), "Initializing homing sequence...");
 
-        strcpy(out, "HL+"); //read Device Number
+        strcpy(out, "HLX+");
+        if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
+            return false;
+        }
+
+        strcpy(out, "HLY-");
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
@@ -605,7 +613,7 @@ private:
             rate.sleep();
         }
 
-        strcpy(out, "ABORT"); //read Device Number
+        strcpy(out, "ABORT");
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
@@ -657,12 +665,12 @@ private:
 
     double pulses_to_mm(double pulses)
     {
-        return pulses * 0.00125;
+        return pulses * (0.00125 / 1000.0);
     }
 
     double mm_to_pulses(double mm)
     {
-        return mm / 0.00125;
+        return mm / (0.00125 / 1000.0);
     }
 };
 

@@ -186,11 +186,11 @@ namespace stage_control
             }
             else if (sim_level == 2)
             {
-                MoveVirtualStage(goal->x, goal->z);
                 MoveStageHardware(goal->x, goal->z);
             }
             else
             {
+                MoveVirtualStage(goal->x, goal->z);
                 MoveStageHardware(goal->x, goal->z);
             }
 
