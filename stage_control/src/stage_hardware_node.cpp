@@ -461,13 +461,29 @@ private:
             home();
             return;
         }
+        else if (request->command.compare("zero") == 0)
+        {
+            // Zero x position
+            strcpy(out, "PX=0");
+            if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
+            {
+                RCLCPP_ERROR(this->get_logger(), "Could not send\n");
+            }
+
+            // Zero z position
+            strcpy(out, "PY=0");
+            if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
+            {
+                RCLCPP_ERROR(this->get_logger(), "Could not send\n");
+            }
+        }
         else if (request->command.compare("flush") == 0)
         {
             fnPerformaxComFlush(Handle);
             return;
         }
 
-        strcpy(out, request->command.c_str()); //move the motor
+        strcpy(out, request->command.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
