@@ -17,7 +17,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "sim_level",
-            default_value="0",
+            default_value="1",
             description="Simulation level: 0 - Emulation only, " +
                 "1 - virtual only, 2 - hardware only, 3 - virtual and hardware"
         ),

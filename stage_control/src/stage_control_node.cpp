@@ -190,8 +190,8 @@ namespace stage_control
             }
             else
             {
-                MoveVirtualStage(goal->x, goal->z);
                 MoveStageHardware(goal->x, goal->z);
+                MoveVirtualStage(goal->x, goal->z);
             }
 
             // Get current time
@@ -254,6 +254,10 @@ namespace stage_control
         {
             RCLCPP_INFO(this->get_logger(), "Moving virtual stage from (%f, %f) to (%f, %f)", 
                 this->current_x, this->current_z, x, z);
+
+            // emulate latency
+            rclcpp::Rate latency(7.5);
+            latency.sleep();
 
             auto x_command = Float64();
             auto z_command = Float64();

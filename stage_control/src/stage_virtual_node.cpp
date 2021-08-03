@@ -106,7 +106,7 @@ private:
     double current_z;
     double target_x;
     double target_z;
-    double target_velocity;
+    double target_velocity = 0.0125;
     double target_time;
 
     void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
