@@ -44,7 +44,7 @@ add_executable(stage_emulated_node src/stage_emulated_node.cpp)
 ament_target_dependencies(stage_emulated_node rclcpp)
 
 add_executable(stage_virtual_node src/stage_virtual_node.cpp)
-ament_target_dependencies(stage_virtual_node rclcpp sensor_msgs std_msgs control_msgs rclcpp_action)
+ament_target_dependencies(stage_virtual_node rclcpp sensor_msgs std_msgs control_msgs rclcpp_action stage_control_interfaces)
 
 add_executable(run_experiment_node scripts/run_experiment_node.cpp)
 ament_target_dependencies(run_experiment_node rclcpp stage_control_interfaces std_msgs rclcpp_action)
@@ -70,6 +70,7 @@ install(TARGETS
 
 install(DIRECTORY
     launch
+    config
     DESTINATION share/${PROJECT_NAME}/
   )
 

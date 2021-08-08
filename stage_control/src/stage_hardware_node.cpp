@@ -364,14 +364,25 @@ public:
 
         // Start service
         RCLCPP_INFO(this->get_logger(), "Starting command service...");
-        service = this->create_service<ControllerCommand>("controller/command",
+        service = this->create_service<ControllerCommand>("stage/controller/command",
                                                           std::bind(&Stage::send_command, this, std::placeholders::_1, std::placeholders::_2));
 
         // Start stage pose publisher
         x_publisher = this->create_publisher<std_msgs::msg::Float64>("stage/joint_states/x", 10);
         z_publisher = this->create_publisher<std_msgs::msg::Float64>("stage/joint_states/z", 10);
         timer = this->create_wall_timer(
-            50ms, std::bind(&Stage::publish_state, this));
+            10ms, std::bind(&Stage::publish_state, this));
+
+        // Set initial velocity
+        this->declare_parameter<double>("velocity", 0.001);
+        this->get_parameter("velocity", target_velocity);
+        set_velocity(target_velocity);
+
+        // Velocity subscriber
+        velocity_subscriber = this->create_subscription<std_msgs::msg::Float64>(
+            "stage/velocity",
+            1,
+            std::bind(&Stage::velocity_callback, this, std::placeholders::_1));
 
         // Start stage position command subscribers
         x_subscriber = this->create_subscription<std_msgs::msg::Float64>(
@@ -398,16 +409,42 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr z_publisher;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr x_subscriber;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr z_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr velocity_subscriber;
     rclcpp::Service<ControllerCommand>::SharedPtr service;
     rclcpp::TimerBase::SharedPtr timer;
     AR_HANDLE Handle; //usb handle
     char out[64];
     char in[64];
     bool homed = false;
+    double target_velocity = 0.001;
+
+    void set_velocity(float vel)
+    {
+        std::string s = "HSPD=" + std::to_string(m_to_pulses(vel));
+        strcpy(out, s.c_str()); //set high speed
+        if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not send\n");
+        }
+    }
+
+    void velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
+    {
+        target_velocity = msg->data;
+        set_velocity(msg->data);
+    }
 
     void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        std::string s = "X" + std::to_string(mm_to_pulses(msg->data));
+        std::string s = "";
+        if (is_moving())
+        {
+            s = "TX" + std::to_string(m_to_pulses(msg->data));
+        }
+        else
+        {
+            s = "X" + std::to_string(m_to_pulses(msg->data));
+        }
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
@@ -417,7 +454,15 @@ private:
 
     void z_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        std::string s = "Y" + std::to_string(mm_to_pulses(-1*msg->data));
+        std::string s = "";
+        if (is_moving())
+        {
+            s = "TY" + std::to_string(m_to_pulses(msg->data));
+        }
+        else
+        {
+            s = "Y" + std::to_string(m_to_pulses(msg->data));
+        }
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
@@ -436,7 +481,7 @@ private:
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
-        x.data = pulses_to_mm(atof(in));
+        x.data = pulses_to_m(atof(in));
 
         // Query z position
         strcpy(out, "PY"); //move the motor
@@ -444,7 +489,7 @@ private:
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
         }
-        z.data = -1*pulses_to_mm(atof(in));
+        z.data = -1*pulses_to_m(atof(in));
 
         // Publish
         x_publisher->publish(x);
@@ -658,7 +703,7 @@ private:
 
     bool is_moving()
     {
-        strcpy(out, "MSTX"); //read Device Number
+        strcpy(out, "MSTX");
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
@@ -667,7 +712,7 @@ private:
         int x_status = atoi(in);
         bool x_moving = x_status == 1 || x_status == 2 || x_status == 4;
 
-        strcpy(out, "MSTY"); //read Device Number
+        strcpy(out, "MSTY");
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))
         {
             RCLCPP_ERROR(this->get_logger(), "Could not send\n");
@@ -679,12 +724,12 @@ private:
         return x_moving || z_moving;
     }
 
-    double pulses_to_mm(double pulses)
+    double pulses_to_m(double pulses)
     {
         return pulses * (0.00125 / 1000.0);
     }
 
-    double mm_to_pulses(double mm)
+    double m_to_pulses(double mm)
     {
         return mm / (0.00125 / 1000.0);
     }

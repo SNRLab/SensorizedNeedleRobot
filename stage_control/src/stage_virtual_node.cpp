@@ -15,6 +15,7 @@
 #include "control_msgs/action/follow_joint_trajectory.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "stage_control_interfaces/srv/controller_command.hpp"
 
 using namespace std::chrono_literals;
 
@@ -24,6 +25,7 @@ public:
     using Float64 = std_msgs::msg::Float64;
     using JointTrajectory = trajectory_msgs::msg::JointTrajectory;
     using FollowJointTrajectory = control_msgs::action::FollowJointTrajectory;
+    using ControllerCommand = stage_control_interfaces::srv::ControllerCommand;
 
     explicit VirtualStageNode() : Node("virtual_stage_node")
     {
@@ -34,7 +36,11 @@ public:
         z_publisher = this->create_publisher<Float64>("virtual_stage/joint_states/z", 10);
 
         timer = this->create_wall_timer(
-            50ms, std::bind(&VirtualStageNode::publish_state, this));
+            10ms, std::bind(&VirtualStageNode::publish_state, this));
+
+        // Set initial velocity
+        this->declare_parameter<double>("velocity", 0.001);
+        this->get_parameter("velocity", target_velocity);
 
         // Start virtual stage position command subscribers
         x_subscriber = this->create_subscription<Float64>(
@@ -48,8 +54,8 @@ public:
             std::bind(&VirtualStageNode::z_command_callback, this, std::placeholders::_1));
 
         velocity_subscriber = this->create_subscription<Float64>(
-            "virtual_stage/velocity_controller",
-            10,
+            "virtual_stage/velocity",
+            1,
             std::bind(&VirtualStageNode::velocity_callback, this, std::placeholders::_1));
 
         //Start joint state subscriber
@@ -85,6 +91,11 @@ public:
             this->get_node_logging_interface(),
             this->get_node_waitables_interface(),
             "/joint4_trajectory_controller/follow_joint_trajectory");
+
+        // Start service
+        RCLCPP_INFO(this->get_logger(), "Starting command service...");
+        service = this->create_service<ControllerCommand>("virtual_stage/controller/command",
+                    std::bind(&VirtualStageNode::send_command, this, std::placeholders::_1, std::placeholders::_2));
         
         RCLCPP_INFO(this->get_logger(), "Ready.");
     }
@@ -101,12 +112,13 @@ private:
     rclcpp_action::Client<FollowJointTrajectory>::SharedPtr joint2_client;
     rclcpp_action::Client<FollowJointTrajectory>::SharedPtr joint3_client;
     rclcpp_action::Client<FollowJointTrajectory>::SharedPtr joint4_client;
+    rclcpp::Service<ControllerCommand>::SharedPtr service;
 
     double current_x;
     double current_z;
     double target_x;
     double target_z;
-    double target_velocity = 0.0125;
+    double target_velocity = 0.001;
     double target_time;
 
     void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
@@ -149,6 +161,18 @@ private:
     void velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
         target_velocity = msg->data;
+    }
+
+    void send_command(const std::shared_ptr<ControllerCommand::Request> request,
+                      std::shared_ptr<ControllerCommand::Response> response)
+    {
+        if (request->command.compare("ABORT") == 0)
+        {
+            MoveJoint(joint1_client, "joint1", current_x, 0);
+            MoveJoint(joint2_client, "joint2", current_z, 0);
+
+            response->response = "OK";
+        }
     }
 
     void publish_state()

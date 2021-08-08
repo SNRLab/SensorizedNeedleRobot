@@ -1,0 +1,4 @@
+stage_control_node:
+  ros__parameters:
+    simulated_latency: 0.095 # seconds
+    sync_vel_compensation: -0.00000273  # m/s

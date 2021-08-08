@@ -30,9 +30,9 @@ namespace stage_control
             using namespace std::placeholders;
 
             // Get velocity
-            this->declare_parameter<double>("velocity", 0.05);
-            this->get_parameter("velocity", velocity);
-            RCLCPP_INFO(this->get_logger(), "Starting experiment using velocity: %f.", velocity);
+            // this->declare_parameter<double>("velocity", 0.0125);
+            // this->get_parameter("velocity", velocity);
+            // RCLCPP_INFO(this->get_logger(), "Starting experiment using velocity: %f.", velocity);
 
             // Get data filepath
             this->declare_parameter<std::string>("filepath", "test.txt");
@@ -60,7 +60,7 @@ namespace stage_control
                 std::bind(&RunExperimentNode::virtual_z_callback, this, std::placeholders::_1));
 
             // Publish to velocity topic
-            velocity_publisher = this->create_publisher<Float64>("virtual_stage/velocity_controller", 10);
+            velocity_publisher = this->create_publisher<Float64>("virtual_stage/velocity", 10);
 
             // Start action client
             this->action_client_ = rclcpp_action::create_client<MoveStage>(
@@ -78,17 +78,15 @@ namespace stage_control
         void Run()
         {
             // Set velocity
-            Float64 msg;
-            msg.data = velocity;
-            velocity_publisher->publish(msg);
+            //Float64 msg;
+            //msg.data = velocity;
+            //velocity_publisher->publish(msg);
 
             rclcpp::Rate delay(2.0);
             delay.sleep();
 
             // Open file
             file.open(filepath);
-
-            is_running = true;
             
             // Get initial time
             start_time = this->now().seconds();
@@ -176,8 +174,9 @@ namespace stage_control
             if (stage == 0)
             {
                 RCLCPP_INFO(this->get_logger(), "Moving to first position...");
-                Move(0.1, 0);
-                stage = 1;
+                is_running = true;
+                Move(0.1, 0.1);
+                stage = 3;
             }
             else if (stage == 1)
             {

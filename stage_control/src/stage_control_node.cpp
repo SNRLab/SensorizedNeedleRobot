@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "stage_control_interfaces/action/move_stage.hpp"
+#include "stage_control_interfaces/srv/controller_command.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
@@ -23,6 +24,7 @@ namespace stage_control
         using MoveStage = stage_control_interfaces::action::MoveStage;
         using GoalHandleMoveStage = rclcpp_action::ServerGoalHandle<MoveStage>;
         using Float64 = std_msgs::msg::Float64;
+        using ControllerCommand = stage_control_interfaces::srv::ControllerCommand;
 
         //STAGE_CONTROL_PUBLIC
         explicit StageControlNode(const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
@@ -34,6 +36,14 @@ namespace stage_control
             this->declare_parameter<int>("sim_level", 0);
             this->get_parameter("sim_level", sim_level);
             RCLCPP_INFO(this->get_logger(), "Starting stage control node with simulation level %i.", sim_level);
+
+            // Set simulated latency
+            this->declare_parameter<double>("simulated_latency", 0.001);
+            this->get_parameter("simulated_latency", delay);
+
+            // Set velocity compensation
+            this->declare_parameter<double>("sync_vel_compensation", 0.0);
+            this->get_parameter("sync_vel_compensation", vel_comp);
 
             // Handle sim level based publishers/subscribers
             std::string joint_topic_x, joint_topic_z;
@@ -50,6 +60,8 @@ namespace stage_control
                 joint_topic_z = "virtual_stage/joint_states/z";
                 virtual_x_publisher = this->create_publisher<Float64>("virtual_stage/x_position_controller/command", 10);
                 virtual_z_publisher = this->create_publisher<Float64>("virtual_stage/z_position_controller/command", 10);
+                virtual_vel_publisher = this->create_publisher<Float64>("virtual_stage/velocity", 1);
+                virtual_stage_command_client = this->create_client<ControllerCommand>("virtual_stage/controller/command");
             }
             else if (sim_level == 2)
             {
@@ -57,6 +69,8 @@ namespace stage_control
                 joint_topic_z = "stage/joint_states/z";
                 hardware_x_publisher = this->create_publisher<Float64>("stage/x_position_controller/command", 10);
                 hardware_z_publisher = this->create_publisher<Float64>("stage/z_position_controller/command", 10);
+                hardware_vel_publisher = this->create_publisher<Float64>("stage/velocity", 1);
+                stage_command_client = this->create_client<ControllerCommand>("stage/controller/command");
             }
             else
             {
@@ -64,8 +78,12 @@ namespace stage_control
                 joint_topic_z = "stage/joint_states/z";
                 virtual_x_publisher = this->create_publisher<Float64>("virtual_stage/x_position_controller/command", 10);
                 virtual_z_publisher = this->create_publisher<Float64>("virtual_stage/z_position_controller/command", 10);
+                virtual_vel_publisher = this->create_publisher<Float64>("virtual_stage/velocity", 1);
+                virtual_stage_command_client = this->create_client<ControllerCommand>("virtual_stage/controller/command");
                 hardware_x_publisher = this->create_publisher<Float64>("stage/x_position_controller/command", 10);
                 hardware_z_publisher = this->create_publisher<Float64>("stage/z_position_controller/command", 10);
+                hardware_vel_publisher = this->create_publisher<Float64>("stage/velocity", 1);
+                stage_command_client = this->create_client<ControllerCommand>("stage/controller/command");
             }
 
             // Subscribe to joint state topics
@@ -78,6 +96,12 @@ namespace stage_control
                 joint_topic_z,
                 10,
                 std::bind(&StageControlNode::z_state_callback, this, std::placeholders::_1));
+
+            // Subscribe to velocity
+            velocity_subscriber = this->create_subscription<Float64>(
+            "stage/global_velocity",
+            10,
+            std::bind(&StageControlNode::velocity_callback, this, std::placeholders::_1));
 
             // Start stage position publisher
             RCLCPP_INFO(this->get_logger(), "Starting stage pose publisher...");
@@ -100,10 +124,15 @@ namespace stage_control
     private:
         rclcpp::Subscription<Float64>::SharedPtr x_subscriber;
         rclcpp::Subscription<Float64>::SharedPtr z_subscriber;
+        rclcpp::Subscription<Float64>::SharedPtr velocity_subscriber;
         rclcpp::Publisher<Float64>::SharedPtr hardware_x_publisher;
         rclcpp::Publisher<Float64>::SharedPtr hardware_z_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr hardware_vel_publisher;
+        rclcpp::Client<ControllerCommand>::SharedPtr stage_command_client;
         rclcpp::Publisher<Float64>::SharedPtr virtual_x_publisher;
         rclcpp::Publisher<Float64>::SharedPtr virtual_z_publisher;
+        rclcpp::Publisher<Float64>::SharedPtr virtual_vel_publisher;
+        rclcpp::Client<ControllerCommand>::SharedPtr virtual_stage_command_client;
         rclcpp::Publisher<Float64>::SharedPtr emulated_x_publisher;
         rclcpp::Publisher<Float64>::SharedPtr emulated_z_publisher;
         rclcpp_action::Server<MoveStage>::SharedPtr action_server_;
@@ -111,6 +140,8 @@ namespace stage_control
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
         double current_x;
         double current_z;
+        double vel_comp;
+        double delay = 0.001;
         int sim_level;
 
         void x_state_callback(const Float64::SharedPtr msg) 
@@ -121,6 +152,27 @@ namespace stage_control
         void z_state_callback(const Float64::SharedPtr msg) 
         {
             this->current_z = msg->data;
+        }
+
+        void velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
+        {
+            Float64 vel;
+            vel.data = msg->data;
+            if (sim_level == 1)
+            {
+                vel.data = vel.data + vel_comp;
+                virtual_vel_publisher->publish(vel);   
+            }
+            else if (sim_level == 2)
+            {
+                hardware_vel_publisher->publish(vel);
+            }
+            else if (sim_level == 3)
+            {
+                hardware_vel_publisher->publish(vel);
+                vel.data = vel.data + vel_comp;
+                virtual_vel_publisher->publish(vel);
+            }
         }
 
         void pose_timer_callback()
@@ -154,6 +206,19 @@ namespace stage_control
             const std::shared_ptr<GoalHandleMoveStage> goal_handle)
         {
             RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+
+            auto request = std::make_shared<ControllerCommand::Request>();
+            request->command = "ABORT";
+
+            // Stop virtual stage
+            if (sim_level == 1 || sim_level == 3)
+                virtual_stage_command_client->async_send_request(request);
+
+            // Stop hardware stage
+            if (sim_level == 2 || sim_level == 3)
+                stage_command_client->async_send_request(request);
+
+
             (void)goal_handle;
             return rclcpp_action::CancelResponse::ACCEPT;
         }
@@ -256,7 +321,7 @@ namespace stage_control
                 this->current_x, this->current_z, x, z);
 
             // emulate latency
-            rclcpp::Rate latency(7.5);
+            rclcpp::Rate latency(1.0/delay);
             latency.sleep();
 
             auto x_command = Float64();

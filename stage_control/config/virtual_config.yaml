@@ -1,0 +1,3 @@
+stage_virtual_node:
+  ros__parameters:
+    velocity: 0.001 # m/s
