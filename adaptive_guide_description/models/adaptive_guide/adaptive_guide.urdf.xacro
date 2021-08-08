@@ -143,8 +143,8 @@
         <axis xyz="0 0 1" />
     </joint>
     <joint name="joint3" type="prismatic">
-        <origin xyz="0.045724 0.009758 0.0333375" rpy="0 0 0 " />
-        <limit lower="-0.160" upper="0" effort="30.0" velocity="6" />
+        <origin xyz="0.045724 -0.169758 0.0333375" rpy="0 0 0 " />
+        <limit lower="-0.0" upper="0.16" effort="30.0" velocity="6" />
         <parent link="link2" />
         <child link="link3" />
         <axis xyz="0 1 0" />
@@ -186,8 +186,8 @@
         </joint>
         <joint name="joint3">
             <command_interface name="position">
-                <param name="min">-0.16</param>
-                <param name="max">0</param>
+                <param name="min">0</param>
+                <param name="max">0.16</param>
             </command_interface>
             <state_interface name="position"/>
             <state_interface name="velocity"/>
