@@ -33,7 +33,9 @@ public:
         RCLCPP_INFO(this->get_logger(), "Initializing virtual stage...");
         // Start stage pose publisher
         x_publisher = this->create_publisher<Float64>("virtual_stage/joint_states/x", 10);
+        y_publisher = this->create_publisher<Float64>("virtual_stage/joint_states/y", 10);
         z_publisher = this->create_publisher<Float64>("virtual_stage/joint_states/z", 10);
+        theta_publisher = this->create_publisher<Float64>("virtual_stage/joint_states/theta", 10);
 
         timer = this->create_wall_timer(
             10ms, std::bind(&VirtualStageNode::publish_state, this));
@@ -42,21 +44,47 @@ public:
         this->declare_parameter<double>("velocity", 0.001);
         this->get_parameter("velocity", target_velocity);
 
+        this->declare_parameter<double>("insertion_vel", 0.005);
+        this->get_parameter("insertion_vel", insertion_velocity);
+
+        this->declare_parameter<double>("rotation_vel", 0.7);
+        this->get_parameter("rotation_vel", rotation_velocity);
+
         // Start virtual stage position command subscribers
         x_subscriber = this->create_subscription<Float64>(
             "virtual_stage/x_position_controller/command",
             10,
             std::bind(&VirtualStageNode::x_command_callback, this, std::placeholders::_1));
 
+        y_subscriber = this->create_subscription<Float64>(
+            "virtual_stage/y_position_controller/command",
+            10,
+            std::bind(&VirtualStageNode::y_command_callback, this, std::placeholders::_1));
+
         z_subscriber = this->create_subscription<Float64>(
             "virtual_stage/z_position_controller/command",
             10,
             std::bind(&VirtualStageNode::z_command_callback, this, std::placeholders::_1));
 
+        theta_subscriber = this->create_subscription<Float64>(
+            "virtual_stage/theta_position_controller/command",
+            10,
+            std::bind(&VirtualStageNode::theta_command_callback, this, std::placeholders::_1));
+
         velocity_subscriber = this->create_subscription<Float64>(
             "virtual_stage/velocity",
             1,
             std::bind(&VirtualStageNode::velocity_callback, this, std::placeholders::_1));
+
+        insertion_velocity_subscriber = this->create_subscription<Float64>(
+            "virtual_stage/insertion_velocity",
+            1,
+            std::bind(&VirtualStageNode::insertion_velocity_callback, this, std::placeholders::_1));
+
+        rotation_velocity_subscriber = this->create_subscription<Float64>(
+            "virtual_stage/rotation_velocity",
+            1,
+            std::bind(&VirtualStageNode::rotation_velocity_callback, this, std::placeholders::_1));
 
         //Start joint state subscriber
         joint_states_subscriber = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -102,10 +130,16 @@ public:
 
 private:
     rclcpp::Publisher<Float64>::SharedPtr x_publisher;
+    rclcpp::Publisher<Float64>::SharedPtr y_publisher;
     rclcpp::Publisher<Float64>::SharedPtr z_publisher;
+    rclcpp::Publisher<Float64>::SharedPtr theta_publisher;
     rclcpp::Subscription<Float64>::SharedPtr x_subscriber;
+    rclcpp::Subscription<Float64>::SharedPtr y_subscriber;
     rclcpp::Subscription<Float64>::SharedPtr z_subscriber;
+    rclcpp::Subscription<Float64>::SharedPtr theta_subscriber;
     rclcpp::Subscription<Float64>::SharedPtr velocity_subscriber;
+    rclcpp::Subscription<Float64>::SharedPtr insertion_velocity_subscriber;
+    rclcpp::Subscription<Float64>::SharedPtr rotation_velocity_subscriber;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_states_subscriber;
     rclcpp::TimerBase::SharedPtr timer;
     rclcpp_action::Client<FollowJointTrajectory>::SharedPtr joint1_client;
@@ -115,10 +149,16 @@ private:
     rclcpp::Service<ControllerCommand>::SharedPtr service;
 
     double current_x;
+    double current_y;
     double current_z;
+    double current_theta;
     double target_x;
+    double target_y;
     double target_z;
+    double target_theta;
     double target_velocity = 0.001;
+    double insertion_velocity = 0.005;
+    double rotation_velocity = 0.7;
     double target_time;
 
     void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
@@ -137,10 +177,26 @@ private:
         MoveJoint(joint2_client, "joint2", target_z, time);
     }
 
+    void y_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
+    {
+        target_y = msg->data;
+
+        double time = abs(target_y - current_y) / insertion_velocity;
+        MoveJoint(joint3_client, "joint3", target_y, time);
+    }
+
+    void theta_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
+    {
+        target_theta = msg->data;
+
+        double time = abs(target_theta - current_theta) / rotation_velocity;
+        MoveJoint(joint4_client, "joint4", target_theta, time);
+    }
+
     void topic_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
     {
         auto names = msg->name;
-        int index1, index2;
+        int index1, index2, index3, index4;
         for (int i = 0; i < names.size(); ++i)
         {
             std::string name = names[i];
@@ -152,15 +208,35 @@ private:
             {
                 index2 = i;
             }
+            else if (name.find("joint3") != std::string::npos)
+            {
+                index3 = i;
+            }
+            else if (name.find("joint4") != std::string::npos)
+            {
+                index4 = i;
+            }
         }
 
         current_x = msg->position[index1];
         current_z = msg->position[index2];
+        current_y = msg->position[index3];
+        current_theta = msg->position[index4];
     }
 
     void velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
         target_velocity = msg->data;
+    }
+
+    void insertion_velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
+    {
+        insertion_velocity = msg->data;
+    }
+
+    void rotation_velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
+    {
+        rotation_velocity = msg->data;
     }
 
     void send_command(const std::shared_ptr<ControllerCommand::Request> request,
@@ -179,13 +255,19 @@ private:
     {
         // Publish state
         auto x = std_msgs::msg::Float64();
+        auto y = std_msgs::msg::Float64();
         auto z = std_msgs::msg::Float64();
+        auto theta = std_msgs::msg::Float64();
 
         x.data = current_x;
+        y.data = current_y;
         z.data = current_z;
+        theta.data = current_theta;
 
         x_publisher->publish(x);
+        y_publisher->publish(y);
         z_publisher->publish(z);
+        theta_publisher->publish(theta);
     }
 
     void MoveJoint(rclcpp_action::Client<FollowJointTrajectory>::SharedPtr client, std::string joint, double position, double time)
