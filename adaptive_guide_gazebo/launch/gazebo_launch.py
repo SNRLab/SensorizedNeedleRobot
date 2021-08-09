@@ -27,9 +27,6 @@ def generate_launch_description():
             default_value='false',
             description='Use simulation (Gazebo) clock if true'),
 
-        #ExecuteProcess(
-        #    cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so'],
-        #    output='screen'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(pkg_gazebo_ros, 'launch', 'gazebo.launch.py')

@@ -64,12 +64,14 @@ The following topics are also exposed:
 - */stage/state/pose*: A geometry_msgs/msg/PoseStamped message that includes the x and z position of the needle guide.
 - */stage/state/needle_pose*: A geometry_msgs/msg/PoseStamped message that combines the needle and stage pose into one pose message.
 
-#### Emulated Needle Control
-The following topics can be published to in order to change the pose of the emulated needle.
-- */needle/emulated/y*: A std_msgs/msg/Float64 topic to change the y (insertion) position of the needle.
-- */needle/emulated/z*: A std_msgs/msg/Float64 topic to change the rotation of the needle about the y-axis.
+#### Virtual Needle Control
+The following topics can be published to in order to change the pose of the virtual needle.
+- */virtual_stage/y_position_controller/command*: A std_msgs/msg/Float64 topic to change the y (insertion) position of the needle in meters.
+- */virtual_Stage/theta_position_controller/command*: A std_msgs/msg/Float64 topic to change the rotation of the needle about the y-axis in radians.
 
-### TO-DO
-- Finish implementing virtual robot controls
-- Ensure virtual and physical robot are consistent
+The following topics can be subscribed to in order to monitor the insertion depth and rotation of the virtual needle.
+ - */virtual_stage/joint_states/y*: A std_msgs/msg/Float64 topic for the insertion depth of the y (insertion) position of the needle in meters.
+ - */virtual_stage/joint_states/theta*: A std_msgs/msg/Float64 topic for the rotation of the needle about the y-axis in radians.
 
+## TODO
+ - Implement virtual sensors (IMU, Linear Potentiometer)
