@@ -457,11 +457,11 @@ private:
         std::string s = "";
         if (is_moving())
         {
-            s = "TY" + std::to_string(m_to_pulses(msg->data));
+            s = "TY" + std::to_string(-1*m_to_pulses(msg->data));
         }
         else
         {
-            s = "Y" + std::to_string(m_to_pulses(msg->data));
+            s = "Y" + std::to_string(-1*m_to_pulses(msg->data));
         }
         strcpy(out, s.c_str());
         if (!fnPerformaxComSendRecv(Handle, out, 64, 64, in))

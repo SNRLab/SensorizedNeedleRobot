@@ -148,6 +148,10 @@ private:
     rclcpp_action::Client<FollowJointTrajectory>::SharedPtr joint4_client;
     rclcpp::Service<ControllerCommand>::SharedPtr service;
 
+    double zero_x;
+    double zero_y;
+    double zero_z;
+    double zero_theta;
     double current_x;
     double current_y;
     double current_z;
@@ -163,7 +167,7 @@ private:
 
     void x_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        target_x = msg->data;
+        target_x = msg->data + zero_x;
 
         double time = abs(target_x - current_x) / target_velocity;
         MoveJoint(joint1_client, "joint1", target_x, time);
@@ -171,7 +175,7 @@ private:
 
     void z_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        target_z = msg->data;
+        target_z = msg->data + zero_z;
 
         double time = abs(target_z - current_z) / target_velocity;
         MoveJoint(joint2_client, "joint2", target_z, time);
@@ -179,7 +183,7 @@ private:
 
     void y_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        target_y = msg->data;
+        target_y = msg->data + zero_y;
 
         double time = abs(target_y - current_y) / insertion_velocity;
         MoveJoint(joint3_client, "joint3", target_y, time);
@@ -187,7 +191,7 @@ private:
 
     void theta_command_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        target_theta = msg->data;
+        target_theta = msg->data + zero_theta;
 
         double time = abs(target_theta - current_theta) / rotation_velocity;
         MoveJoint(joint4_client, "joint4", target_theta, time);
@@ -231,12 +235,12 @@ private:
 
     void insertion_velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        insertion_velocity = msg->data;
+        insertion_velocity = msg->data + zero_z;
     }
 
     void rotation_velocity_callback(const std_msgs::msg::Float64::SharedPtr msg)
     {
-        rotation_velocity = msg->data;
+        rotation_velocity = msg->data + zero_theta;
     }
 
     void send_command(const std::shared_ptr<ControllerCommand::Request> request,
@@ -249,6 +253,13 @@ private:
 
             response->response = "OK";
         }
+        else if (request->command.compare("zero") == 0)
+        {
+            zero_x = current_x;
+            zero_y = current_y;
+            zero_z = current_z;
+            zero_theta = current_theta;
+        }
     }
 
     void publish_state()
@@ -259,10 +270,10 @@ private:
         auto z = std_msgs::msg::Float64();
         auto theta = std_msgs::msg::Float64();
 
-        x.data = current_x;
-        y.data = current_y;
-        z.data = current_z;
-        theta.data = current_theta;
+        x.data = current_x - zero_x;
+        y.data = current_y - zero_y;
+        z.data = current_z - zero_z;
+        theta.data = current_theta - zero_theta;
 
         x_publisher->publish(x);
         y_publisher->publish(y);

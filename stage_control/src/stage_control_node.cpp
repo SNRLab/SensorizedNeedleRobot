@@ -99,15 +99,20 @@ namespace stage_control
 
             // Subscribe to velocity
             velocity_subscriber = this->create_subscription<Float64>(
-            "stage/global_velocity",
-            10,
-            std::bind(&StageControlNode::velocity_callback, this, std::placeholders::_1));
+                "stage/global_velocity",
+                10,
+                std::bind(&StageControlNode::velocity_callback, this, std::placeholders::_1));
 
             // Start stage position publisher
             RCLCPP_INFO(this->get_logger(), "Starting stage pose publisher...");
             this->pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/stage/state/pose", 10);
             this->pose_timer_ = this->create_wall_timer(
                 50ms, std::bind(&StageControlNode::pose_timer_callback, this));
+
+            // Start service
+            RCLCPP_INFO(this->get_logger(), "Starting command service...");
+            service = this->create_service<ControllerCommand>("stage/controller/global_command",
+                                                              std::bind(&StageControlNode::send_command, this, std::placeholders::_1, std::placeholders::_2));
 
             // Start action server
             RCLCPP_INFO(this->get_logger(), "Starting stage control action server...");
@@ -117,7 +122,7 @@ namespace stage_control
                 std::bind(&StageControlNode::handle_goal, this, _1, _2),
                 std::bind(&StageControlNode::handle_cancel, this, _1),
                 std::bind(&StageControlNode::handle_accepted, this, _1));
-            
+
             RCLCPP_INFO(this->get_logger(), "Stage control ready.");
         }
 
@@ -138,18 +143,33 @@ namespace stage_control
         rclcpp_action::Server<MoveStage>::SharedPtr action_server_;
         rclcpp::TimerBase::SharedPtr pose_timer_;
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
+        rclcpp::Service<ControllerCommand>::SharedPtr service;
         double current_x;
         double current_z;
         double vel_comp;
         double delay = 0.001;
         int sim_level;
 
-        void x_state_callback(const Float64::SharedPtr msg) 
+        void send_command(const std::shared_ptr<ControllerCommand::Request> request,
+                          std::shared_ptr<ControllerCommand::Response> response)
+        {
+            if (sim_level == 1 || sim_level == 3)
+            {
+                virtual_stage_command_client->async_send_request(request);
+            }
+
+            if (sim_level == 2 || sim_level == 3)
+            {
+                stage_command_client->async_send_request(request);
+            }
+        }
+
+        void x_state_callback(const Float64::SharedPtr msg)
         {
             this->current_x = msg->data;
         }
 
-        void z_state_callback(const Float64::SharedPtr msg) 
+        void z_state_callback(const Float64::SharedPtr msg)
         {
             this->current_z = msg->data;
         }
@@ -161,7 +181,7 @@ namespace stage_control
             if (sim_level == 1)
             {
                 vel.data = vel.data + vel_comp;
-                virtual_vel_publisher->publish(vel);   
+                virtual_vel_publisher->publish(vel);
             }
             else if (sim_level == 2)
             {
@@ -217,7 +237,6 @@ namespace stage_control
             // Stop hardware stage
             if (sim_level == 2 || sim_level == 3)
                 stage_command_client->async_send_request(request);
-
 
             (void)goal_handle;
             return rclcpp_action::CancelResponse::ACCEPT;
@@ -302,8 +321,8 @@ namespace stage_control
 
         void MoveStageHardware(double x, double z)
         {
-            RCLCPP_INFO(this->get_logger(), "Moving stage hardware from (%f, %f) to (%f, %f)", 
-                this->current_x, this->current_z, x, z);
+            RCLCPP_INFO(this->get_logger(), "Moving stage hardware from (%f, %f) to (%f, %f)",
+                        this->current_x, this->current_z, x, z);
 
             auto x_command = Float64();
             auto z_command = Float64();
@@ -317,11 +336,11 @@ namespace stage_control
 
         void MoveVirtualStage(double x, double z)
         {
-            RCLCPP_INFO(this->get_logger(), "Moving virtual stage from (%f, %f) to (%f, %f)", 
-                this->current_x, this->current_z, x, z);
+            RCLCPP_INFO(this->get_logger(), "Moving virtual stage from (%f, %f) to (%f, %f)",
+                        this->current_x, this->current_z, x, z);
 
             // emulate latency
-            rclcpp::Rate latency(1.0/delay);
+            rclcpp::Rate latency(1.0 / delay);
             latency.sleep();
 
             auto x_command = Float64();
@@ -336,8 +355,8 @@ namespace stage_control
 
         void MoveEmulatedStage(double x, double z)
         {
-            RCLCPP_INFO(this->get_logger(), "Moving emulated stage from (%f, %f) to (%f, %f)", 
-                this->current_x, this->current_z, x, z);
+            RCLCPP_INFO(this->get_logger(), "Moving emulated stage from (%f, %f) to (%f, %f)",
+                        this->current_x, this->current_z, x, z);
 
             auto x_command = Float64();
             auto z_command = Float64();
@@ -359,7 +378,7 @@ namespace stage_control
 
 //RCLCPP_COMPONENTS_REGISTER_NODE(stage_control::StageControlNode)
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 
