@@ -19,6 +19,11 @@ The *stage_config.yaml* has the following parameters that are loaded when launch
 ## Topics
 - */stage/global_velocity*: A std_msgs/msg/Float64 message to set the velocity of both the hardware and virtual stage, or whichever one is active.
 
+## Command Service
+The ```/stage/controller/global_command``` service accepts *stage_control_interfaces/srv/ControllerCommand* messages which contains a *std_msgs/msg/String* command message. The command message can have the following values:
+ - **ABORT**: Immediately stop the motion of the x and z joints for both the virtual and hardware stage
+ - **zero**: Sets the current position of the virtual and hardware stage's joints as the new zero position
+
 
 ## Physical Stage
 
@@ -34,7 +39,9 @@ To be able to connect to the NSC-A2L motor controller with a Linux system, some 
 8. ```sudo udevadm trigger```
 
 ### Usage
-The stage should be primarily controlled via the ```/move_stage``` action server, however the ```/stage/controller/command``` service is available for more specific commands. Using this service, commands can be sent directly to the controller following the communication protocol in Section 9 of the NSC-2AL user manual.
+The stage should be primarily controlled via the ```/move_stage``` action server, however the ```/stage/controller/command``` service is available for more specific commands. Using this service, commands can be sent directly to the controller following the communication protocol in Section 9 of the NSC-2AL user manual.\
+
+On startup, the stage should first be moved to its home position by sending the **home** command to the ```/stage/controller/command``` service.
 
 ### Parameters
 The hardware_config.yaml has the following parameters that are loaded when launched:
