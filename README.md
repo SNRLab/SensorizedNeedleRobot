@@ -75,3 +75,4 @@ The following topics can be subscribed to in order to monitor the insertion dept
 
 ## TODO
  - Implement virtual sensors (IMU, Linear Potentiometer)
+ - Implement queue for commands sent to NSC-2AL to improve reliability
